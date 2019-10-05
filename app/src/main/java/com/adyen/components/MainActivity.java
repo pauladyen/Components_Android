@@ -17,7 +17,6 @@ import com.adyen.components.Network.AppConfig;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.lifecycle.Observer;
-import com.adyen.Client;
 import com.adyen.checkout.base.ActionComponentData;
 import com.adyen.checkout.base.PaymentComponentState;
 import com.adyen.checkout.base.model.PaymentMethodsApiResponse;
@@ -34,17 +33,6 @@ import com.adyen.checkout.ideal.IdealSpinnerView;
 import com.adyen.checkout.redirect.RedirectComponent;
 import com.adyen.checkout.redirect.RedirectUtil;
 import com.adyen.components.Network.EncodingUtil;
-import com.adyen.enums.Environment;
-import com.adyen.model.Amount;
-import com.adyen.model.BrowserInfo;
-import com.adyen.model.checkout.DefaultPaymentMethodDetails;
-import com.adyen.model.checkout.PaymentMethodsRequest;
-import com.adyen.model.checkout.PaymentMethodsResponse;
-import com.adyen.model.checkout.PaymentsDetailsRequest;
-import com.adyen.model.checkout.PaymentsRequest;
-import com.adyen.model.checkout.PaymentsResponse;
-import com.adyen.service.Checkout;
-import com.adyen.service.exception.ApiException;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import org.json.JSONException;
@@ -55,7 +43,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -80,18 +67,11 @@ public class MainActivity extends AppCompatActivity {
 
     RedirectComponent redirectComponent;
 
-    public static Checkout checkout;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        Client client = new Client("AQEyhmfxJ4LIbhBDw0m/n3Q5qf3VaY9UCJ1+XWZe9W27jmlZihMPlwWFQSNNxzoSFKkbaUEQwV1bDb7kfNy1WIxIIkxgBw==-FgMmXEbV5KRHFSIE9AMC8R8r/ryQ08qAVsnnJqjR7e8=-ZH4mT8daH7IIAPI9",
-                Environment.TEST);
-
-        checkout = new Checkout(client);
 
         cardView = findViewById(R.id.cardComp);
         idealSpinnerView = findViewById(R.id.idealComp);
