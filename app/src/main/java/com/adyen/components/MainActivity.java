@@ -1,7 +1,6 @@
 package com.adyen.components;
 
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -12,6 +11,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+
+import com.adyen.checkout.adyen3ds2.Adyen3DS2Component;
 import com.adyen.components.Network.ApiConfig;
 import com.adyen.components.Network.AppConfig;
 import androidx.appcompat.app.AppCompatActivity;
@@ -140,7 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
         ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
 
-        Call<JsonObject> call = getResponse.getPaymentMethods(country, Currency, Amount, "ANDROID");
+        Call<JsonObject> call = getResponse.getPaymentMethods(country, Currency, Amount, "Android");
 
         call.enqueue(new Callback<JsonObject>() {
             @Override
@@ -369,13 +370,13 @@ public class MainActivity extends AppCompatActivity {
 
             String data = EncodingUtil.encodeURIComponent(paymentComponentData.toString());
 
-            Log.v("PaymentComponentData", data);
+            Log.v("PaymentComponentData", paymentComponentData.toString());
 
-            Call<JsonObject> call = getResponse.makePayment(data, MainActivity.curr, MainActivity.amo, EncodingUtil.encodeURIComponent("adyencheckout://com.adyen.components"));
+            Call<JsonObject> call = getResponse.makePayment(data, MainActivity.curr, MainActivity.amo, EncodingUtil.encodeURIComponent("adyencheckout://com.adyen.components"),"Android");
 
             Response<JsonObject> response = call.execute();
 
-            if (response.isSuccessful() && response.body() != null){
+            if (response.isSuccessful() && response.body() != null) {
 
                 String json = new Gson().toJson(response.body());
 
@@ -383,15 +384,20 @@ public class MainActivity extends AppCompatActivity {
 
                 Log.v("PayCallResponse", paymentsResponse.toString(4));
 
-                if(json.contains("action")){
-
+                if(paymentsResponse.getString("resultCode").equalsIgnoreCase("IdentifyShopper")){
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            threeDSAction(paymentsResponse);
+                        }
+                    });
+                }else if(paymentsResponse.getString("resultCode").equalsIgnoreCase("RedirectShopper")){
                     MainActivity.this.runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
                             launchRedirectComponent(paymentsResponse);
                         }
                     });
-
                 }else{
                     resultsIntent.putExtra("ComponentResult", new Gson().toJson(paymentsResponse));
 
@@ -407,6 +413,87 @@ public class MainActivity extends AppCompatActivity {
 
         } catch (Exception e) {
             Log.e("Exception_PayResult",e.toString());
+        }
+    }
+
+    private void makePaymentsDetailsCall(final JSONObject paymentsResponse, ActionComponentData actionComponentData){
+        ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
+
+        try{
+            Call<JsonObject> call;
+
+            String type = paymentsResponse.getJSONObject("action").getString("type")
+                    + paymentsResponse.getJSONObject("action").getString("paymentMethodType");
+
+            if(type.equalsIgnoreCase("redirectscheme")){
+                call = getResponse.paymentDetailsScheme(
+                        type,
+                        actionComponentData.getDetails().getString("MD"),
+                        actionComponentData.getDetails().getString("PaRes"),
+                        paymentsResponse.getString("paymentData")
+                );
+            }else if(type.equalsIgnoreCase("redirectideal")){
+                call = getResponse.paymentDetailsIdeal(
+                        type,
+                        actionComponentData.getDetails().getString("payload")
+                );
+            }else if (type.equalsIgnoreCase("threeDS2Fingerprintscheme")) {
+
+                call = getResponse.paymentDetailsFingerPrint(
+                        type,
+                        actionComponentData.getDetails().getString("threeds2.fingerprint"),
+                        paymentsResponse.getString("paymentData")
+                );
+
+            }else if (type.equalsIgnoreCase("threeDS2Challengescheme")){
+
+                    call = getResponse.paymentDetailsChallenge(
+                            type,
+                            actionComponentData.getDetails().getString("threeds2.challengeResult"),
+                            paymentsResponse.getString("paymentData")
+                    );
+
+            }else {
+               call = null;
+            }
+
+
+
+            //String data = EncodingUtil.encodeURIComponent(paymentComponentData.toString());
+
+            Response<JsonObject> response = call.execute();
+
+            if (response.isSuccessful() && response.body() != null){
+
+                String json = new Gson().toJson(response.body());
+
+                final JSONObject paymentsDetailsResponse = new JSONObject(json);
+
+                Log.v("PaymentsDetailsResponse", paymentsDetailsResponse.toString(4));
+
+                if(paymentsDetailsResponse.getString("resultCode").equalsIgnoreCase("ChallengeShopper")){
+
+                    MainActivity.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            threeDSAction(paymentsDetailsResponse);
+                        }
+                    });
+                }else{
+                    resultsIntent.putExtra("ComponentResult", json);
+
+                    startActivity(resultsIntent);
+                }
+
+
+            }else {
+                Log.e("PaymentsDetailsResponse", response.message());
+            }
+
+
+
+        }catch (Exception e){
+            Log.e("PaymentsDetailsResponse",e.toString());
         }
     }
 
@@ -436,56 +523,7 @@ public class MainActivity extends AppCompatActivity {
                         new Thread(new Runnable() {
                             @Override
                             public void run() {
-
-                                ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
-
-                                try{
-                                    Call<JsonObject> call;
-
-                                    if(paymentMethodType.equalsIgnoreCase("scheme")){
-
-                                        call = getResponse.paymentDetails(
-                                                paymentMethodType,
-                                                actionComponentData.getDetails().getString("MD"),
-                                                actionComponentData.getDetails().getString("PaRes"),
-                                                paymentsResponse.getString("paymentData")
-                                        );
-
-                                    }else{
-                                        call = getResponse.paymentDetails(
-                                                paymentMethodType,
-                                                actionComponentData.getDetails().getString("payload")
-                                        );
-                                    }
-
-                                    //String data = EncodingUtil.encodeURIComponent(paymentComponentData.toString());
-
-                                    Response<JsonObject> response = call.execute();
-
-                                    if (response.isSuccessful() && response.body() != null){
-
-                                        String json = new Gson().toJson(response.body());
-
-                                        JSONObject paymentsResponse = new JSONObject(json);
-
-                                        Log.v("PaymentsDetailsResponse", paymentsResponse.toString(4));
-
-                                        resultsIntent.putExtra("ComponentResult", json);
-
-                                        startActivity(resultsIntent);
-
-
-                                    }else {
-                                        Log.e("PaymentsDetailsResponse", response.message());
-                                    }
-
-
-
-                                }catch (Exception e){
-                                    Log.e("PaymentsDetailsResponse",e.toString());
-                                }
-
-
+                                makePaymentsDetailsCall(paymentsResponse, actionComponentData);
                             }
                         }).start();
 
@@ -502,6 +540,51 @@ public class MainActivity extends AppCompatActivity {
 
 
 
+
+    }
+
+    private void threeDSAction(final JSONObject paymentsResponse){
+
+        try{
+            Adyen3DS2Component threedsComponent = Adyen3DS2Component.PROVIDER.get(this);
+
+            final JSONObject actionResponse = paymentsResponse.getJSONObject("action");
+            final Action action = Action.SERIALIZER.deserialize(actionResponse);
+
+            threedsComponent.handleAction(this, action);
+
+            threedsComponent.observe(this, new Observer<ActionComponentData>() {
+                @Override
+                public void onChanged(final ActionComponentData actionComponentData) {
+
+
+                    try{
+                        JSONObject actionComponent = new JSONObject(
+                                new Gson().toJson(
+                                        actionComponentData
+                                )
+                        );
+
+                        Log.v("3DS", actionComponent.toString(4));
+
+                    }catch (Exception e){
+
+                    }
+
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            makePaymentsDetailsCall(paymentsResponse, actionComponentData);
+                        }
+                    }).start();
+
+                }
+            });
+
+
+        }catch (Exception e){
+
+        }
 
     }
 

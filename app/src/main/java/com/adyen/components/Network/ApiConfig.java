@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.POST;
 import retrofit2.http.Query;
 import retrofit2.http.Streaming;
 import retrofit2.http.Url;
@@ -32,7 +33,7 @@ public interface ApiConfig {
     Call<ResponseBody> downloadFile(@Url String fileUrl);
 
 
-    @GET("GetPaymentMethods")
+    @POST("GetPaymentMethods")
     Call<JsonObject> getPaymentMethods(
 
             @Query("countryCode") String country,
@@ -42,26 +43,41 @@ public interface ApiConfig {
     );
 
 
-    @GET("MakePayment")
+    @POST("MakePayment")
     Call<JsonObject> makePayment(
             @Query("data") String data,
             @Query("currency") String currency,
             @Query("value") String amount,
-            @Query("returnurl") String returnURL
+            @Query("returnurl") String returnURL,
+            @Query("channel") String channel
     );
 
-    @GET("PaymentDetails")
-    Call<JsonObject> paymentDetails(
-            @Query("paymentMethodType") String paymentMethodType,
+    @POST("PaymentDetails")
+    Call<JsonObject> paymentDetailsScheme(
+            @Query("type") String actionType,
             @Query("MD") String MD,
             @Query("PaRes") String PaRes,
             @Query("paymentData") String paymentData
     );
 
-    @GET("PaymentDetails")
-    Call<JsonObject> paymentDetails(
-            @Query("paymentMethodType") String paymentMethodType,
+    @POST("PaymentDetails")
+    Call<JsonObject> paymentDetailsIdeal(
+            @Query("type") String actionType,
             @Query("payload") String payload
+    );
+
+    @POST("PaymentDetails")
+    Call<JsonObject> paymentDetailsFingerPrint(
+            @Query("type") String actionType,
+            @Query("fingerprint") String payload,
+            @Query("paymentData") String paymentData
+    );
+
+    @POST("PaymentDetails")
+    Call<JsonObject> paymentDetailsChallenge(
+            @Query("type") String actionType,
+            @Query("challengeResult") String challengeResult,
+            @Query("paymentData") String paymentData
     );
 
 }
