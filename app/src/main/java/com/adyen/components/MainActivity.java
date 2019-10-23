@@ -368,9 +368,9 @@ public class MainActivity extends AppCompatActivity {
 
             ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
 
-            String data = EncodingUtil.encodeURIComponent(paymentComponentData.toString());
+            String data = EncodingUtil.encodeURIComponent(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
 
-            Log.v("PaymentComponentData", paymentComponentData.toString());
+            Log.v("PaymentComponentData", paymentComponentData.toString(4));
 
             Call<JsonObject> call = getResponse.makePayment(data, MainActivity.curr, MainActivity.amo, EncodingUtil.encodeURIComponent("adyencheckout://com.adyen.components"),"Android");
 
