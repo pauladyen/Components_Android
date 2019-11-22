@@ -47,6 +47,7 @@ public interface ApiConfig {
     Call<JsonObject> makePayment(
             @Query("data") String data,
             @Query("currency") String currency,
+            @Query("countryCode") String country,
             @Query("value") String amount,
             @Query("returnurl") String returnURL,
             @Query("channel") String channel
@@ -77,6 +78,13 @@ public interface ApiConfig {
     Call<JsonObject> paymentDetailsChallenge(
             @Query("type") String actionType,
             @Query("challengeResult") String challengeResult,
+            @Query("paymentData") String paymentData
+    );
+
+    @POST("PaymentDetails")
+    Call<JsonObject> paymentDetailsKlarnaAccount(
+            @Query("type") String actionType,
+            @Query("redirectResult") String redirectResult,
             @Query("paymentData") String paymentData
     );
 

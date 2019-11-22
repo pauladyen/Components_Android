@@ -52,8 +52,7 @@ public class MainActivity extends AppCompatActivity {
 
     Spinner methodSpinner;
 
-    public static String curr;
-    public static String amo;
+    public static String curr, amo, cc;
     Intent resultsIntent;
 
     CardView cardView;
@@ -103,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
 
                 curr = currency.getText().toString().toUpperCase();
                 amo = amount.getText().toString();
+                cc = country.getText().toString();
 
                 getPaymentMethods(
                         country.getText().toString().toUpperCase(),
@@ -228,7 +228,18 @@ public class MainActivity extends AppCompatActivity {
 
             case "paypal":
                 break;
-            case "klarna":
+            case "klarna_account":
+                new Thread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        try{
+                            makePaymentsCall("{\"type\": \"klarna_account\"}");
+                        }catch (Exception e){
+                        }
+                    }
+                }).start();
+
                 break;
             case "sepadirectdebit":
                 break;
@@ -284,7 +295,12 @@ public class MainActivity extends AppCompatActivity {
 
                                 @Override
                                 public void run() {
-                                    makePaymentsCall(paymentComponentState);
+                                    try{
+                                        JSONObject paymentComponentData = new JSONObject(new Gson().toJson(paymentComponentState));
+                                        Log.v("PaymentComponentData", paymentComponentData.toString(4));
+                                        makePaymentsCall(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
+                                    }catch (Exception e){
+                                    }
                                 }
                             }).start();
                         }
@@ -299,6 +315,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadIdealComponent(PaymentMethod paymentMethod) {
+
+
+
         IdealConfiguration idealConfiguration = new IdealConfiguration.Builder(MainActivity.this).build();
 
            IdealComponent idealComponent = IdealComponent.PROVIDER.get(MainActivity.this,
@@ -326,7 +345,13 @@ public class MainActivity extends AppCompatActivity {
                                 new Thread(new Runnable() {
                                     @Override
                                     public void run() {
-                                        makePaymentsCall(paymentComponentState);
+                                        try{
+                                            JSONObject paymentComponentData = new JSONObject(new Gson().toJson(paymentComponentState));
+                                            Log.v("PaymentComponentData", paymentComponentData.toString(4));
+                                            makePaymentsCall(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
+                                        }catch (Exception e){
+                                        }
+
                                     }
                                 }).start();
                             }
@@ -341,6 +366,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
     }
+
+
 
     private void reset(){
         layout.removeView(cardView);
@@ -361,18 +388,13 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void makePaymentsCall(PaymentComponentState paymentComponentState){
+    private void makePaymentsCall(String paymentMethod){
         try  {
-
-            JSONObject paymentComponentData = new JSONObject(new Gson().toJson(paymentComponentState));
-
             ApiConfig getResponse = AppConfig.getRetrofit().create(ApiConfig.class);
 
-            String data = EncodingUtil.encodeURIComponent(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
+            String data = EncodingUtil.encodeURIComponent(paymentMethod);
 
-            Log.v("PaymentComponentData", paymentComponentData.toString(4));
-
-            Call<JsonObject> call = getResponse.makePayment(data, MainActivity.curr, MainActivity.amo, EncodingUtil.encodeURIComponent("adyencheckout://com.adyen.components"),"Android");
+            Call<JsonObject> call = getResponse.makePayment(data, MainActivity.curr,MainActivity.cc, MainActivity.amo, EncodingUtil.encodeURIComponent("adyencheckout://com.adyen.components"),"Android");
 
             Response<JsonObject> response = call.execute();
 
@@ -453,6 +475,13 @@ public class MainActivity extends AppCompatActivity {
                             paymentsResponse.getString("paymentData")
                     );
 
+            }else if (type.equalsIgnoreCase("redirectklarna_account")){
+
+                call = getResponse.paymentDetailsKlarnaAccount(
+                        type,
+                        actionComponentData.getDetails().getString("redirectResult"),
+                        paymentsResponse.getString("paymentData")
+                );
             }else {
                call = null;
             }
@@ -498,7 +527,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void launchRedirectComponent(final JSONObject paymentsResponse) {
-
 
         try{
             final JSONObject actionResponse = paymentsResponse.getJSONObject("action");
