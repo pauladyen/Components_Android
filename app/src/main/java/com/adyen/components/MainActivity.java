@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private void onMethodSelected(PaymentMethod paymentMethod){
+    private void onMethodSelected(final PaymentMethod paymentMethod){
 
         Log.v("Selected_Type:",paymentMethod.getType());
 
@@ -229,12 +229,14 @@ public class MainActivity extends AppCompatActivity {
             case "paypal":
                 break;
             case "klarna_account":
+            case "klarna_paynow":
+            case "klarna":
                 new Thread(new Runnable() {
 
                     @Override
                     public void run() {
                         try{
-                            makePaymentsCall("{\"type\": \"klarna_account\"}");
+                            makePaymentsCall("{\"type\": "+paymentMethod.getType()+"}");
                         }catch (Exception e){
                         }
                     }
@@ -475,7 +477,9 @@ public class MainActivity extends AppCompatActivity {
                             paymentsResponse.getString("paymentData")
                     );
 
-            }else if (type.equalsIgnoreCase("redirectklarna_account")){
+            }else if (type.equalsIgnoreCase("redirectklarna_account")
+            ||  type.equalsIgnoreCase("redirectklarna_paynow")
+            ||  type.equalsIgnoreCase("redirectklarna")){
 
                 call = getResponse.paymentDetailsKlarnaAccount(
                         type,
