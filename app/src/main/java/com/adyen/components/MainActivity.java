@@ -13,6 +13,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 
 import com.adyen.checkout.adyen3ds2.Adyen3DS2Component;
+import com.adyen.checkout.sepa.SepaComponent;
+import com.adyen.checkout.sepa.SepaConfiguration;
+import com.adyen.checkout.sepa.SepaView;
 import com.adyen.components.Network.ApiConfig;
 import com.adyen.components.Network.AppConfig;
 import androidx.appcompat.app.AppCompatActivity;
@@ -57,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
 
     CardView cardView;
     IdealSpinnerView idealSpinnerView;
+    SepaView sepaView;
     LinearLayoutCompat layout;
 
 
@@ -72,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
 
         cardView = findViewById(R.id.cardComp);
         idealSpinnerView = findViewById(R.id.idealComp);
+        sepaView = findViewById(R.id.sepaComp);
 
         layout = findViewById(R.id.layout);
 
@@ -244,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
 
                 break;
             case "sepadirectdebit":
+                loadSepaComponent(paymentMethod);
                 break;
             case "cup":
                 break;
@@ -318,8 +324,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void loadIdealComponent(PaymentMethod paymentMethod) {
 
-
-
         IdealConfiguration idealConfiguration = new IdealConfiguration.Builder(MainActivity.this).build();
 
            IdealComponent idealComponent = IdealComponent.PROVIDER.get(MainActivity.this,
@@ -369,11 +373,64 @@ public class MainActivity extends AppCompatActivity {
             });
     }
 
+    private void loadSepaComponent(PaymentMethod paymentMethod){
+
+        SepaConfiguration sepaConfiguration = new SepaConfiguration.Builder(MainActivity.this).build();
+        SepaComponent sepaComponent = SepaComponent.PROVIDER.get(MainActivity.this,
+                paymentMethod,
+                sepaConfiguration);
+
+        sepaView.attach(sepaComponent, MainActivity.this);
+
+        reset();
+
+        layout.addView(sepaView);
+
+        layout.addView(pay);
+        pay.setEnabled(false);
+
+
+        sepaComponent.observe(MainActivity.this, new Observer<PaymentComponentState>() {
+            @Override
+            public void onChanged(final PaymentComponentState paymentComponentState) {
+
+                if(paymentComponentState.isValid()){
+                    pay.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try{
+                                        JSONObject paymentComponentData = new JSONObject(new Gson().toJson(paymentComponentState));
+                                        Log.v("PaymentComponentData", paymentComponentData.toString(4));
+                                        makePaymentsCall(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
+                                    }catch (Exception e){
+                                    }
+
+                                }
+                            }).start();
+                        }
+                    });
+
+                    pay.setEnabled(true);
+
+                }else{
+                    pay.setEnabled(false);
+                }
+
+            }
+        });
+
+
+    }
+
 
 
     private void reset(){
         layout.removeView(cardView);
         layout.removeView(idealSpinnerView);
+        layout.removeView(sepaView);
         layout.removeView(pay);
     }
 

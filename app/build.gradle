@@ -34,7 +34,7 @@ dependencies {
 
     implementation "com.adyen.checkout:card-ui:3.4.0"
     implementation "com.adyen.checkout:redirect:3.4.0"
-
+    implementation "com.adyen.checkout:sepa-ui:3.4.0"
     implementation "com.adyen.checkout:ideal-ui:3.4.0"
 
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
