@@ -1,5 +1,7 @@
 package com.adyen.components;
 
+import android.app.Application;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,11 +15,17 @@ import android.widget.EditText;
 import android.widget.Spinner;
 
 import com.adyen.checkout.adyen3ds2.Adyen3DS2Component;
+import com.adyen.checkout.base.ComponentAvailableCallback;
+import com.adyen.checkout.googlepay.GooglePayComponent;
+import com.adyen.checkout.googlepay.GooglePayConfiguration;
 import com.adyen.checkout.sepa.SepaComponent;
 import com.adyen.checkout.sepa.SepaConfiguration;
 import com.adyen.checkout.sepa.SepaView;
 import com.adyen.components.Network.ApiConfig;
 import com.adyen.components.Network.AppConfig;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.lifecycle.Observer;
@@ -67,6 +75,10 @@ public class MainActivity extends AppCompatActivity {
     JSONObject jsonPayMethodsResponse;
 
     RedirectComponent redirectComponent;
+
+    public static int GOOGLEPAY = 000;
+
+    GooglePayComponent googlePayComponent;
 
 
     @Override
@@ -254,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
             case "cup":
                 break;
             case "paywithgoogle":
+                loadGooglePayComponent(paymentMethod);
                 break;
             case "wechatpayQR":
                 break;
@@ -424,6 +437,71 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+    private void loadGooglePayComponent(PaymentMethod paymentMethod){
+
+        reset();
+
+        final GooglePayConfiguration googlePayConfiguration = new GooglePayConfiguration.Builder(MainActivity.this, "PaulAsiimwe").build();
+
+
+        GooglePayComponent.PROVIDER.isAvailable(getApplication(), paymentMethod, googlePayConfiguration,
+                new ComponentAvailableCallback<GooglePayConfiguration>() {
+                    @Override
+                    public void onAvailabilityResult(boolean isAvailable, @NonNull PaymentMethod paymentMethod, @Nullable GooglePayConfiguration config) {
+
+                        googlePayComponent = new GooglePayComponent(paymentMethod, googlePayConfiguration);
+
+                        googlePayComponent.startGooglePayScreen(MainActivity.this, GOOGLEPAY);
+
+                        layout.addView(pay);
+                        pay.setEnabled(false);
+
+
+                    }
+                });
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode , Intent data){
+
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode == GOOGLEPAY){
+            googlePayComponent.observe(MainActivity.this, new Observer<PaymentComponentState>() {
+                @Override
+                public void onChanged(final PaymentComponentState paymentComponentState) {
+                    if(paymentComponentState.isValid()){
+                        pay.setEnabled(true);
+
+                        pay.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                new Thread(new Runnable() {
+
+                                    @Override
+                                    public void run() {
+                                        try{
+                                            JSONObject paymentComponentData = new JSONObject(new Gson().toJson(paymentComponentState));
+                                            Log.v("PaymentComponentData", paymentComponentData.toString(4));
+                                            makePaymentsCall(paymentComponentData.getJSONObject("mPaymentComponentData").getJSONObject("paymentMethod").toString());
+                                        }catch (Exception e){
+                                        }
+                                    }
+                                }).start();
+                            }
+                        });
+                    }
+                }
+            });
+
+            googlePayComponent.handleActivityResult(resultCode, data);
+        }
+
+    }
+
+
 
 
 

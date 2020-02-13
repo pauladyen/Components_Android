@@ -36,6 +36,7 @@ dependencies {
     implementation "com.adyen.checkout:redirect:3.4.0"
     implementation "com.adyen.checkout:sepa-ui:3.4.0"
     implementation "com.adyen.checkout:ideal-ui:3.4.0"
+    implementation "com.adyen.checkout:googlepay-base:3.4.0"
 
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
